@@ -763,6 +763,7 @@ extern "C" DLL_EXPORT const char* _dbg_dbginit()
     dputs(QT_TRANSLATE_NOOP("DBG", "Initialization successful!"));
     bIsStopped = false;
     dputs(QT_TRANSLATE_NOOP("DBG", "Loading plugins..."));
+    ResetDllSearch();
     pluginloadall(plugindir);
     dputs(QT_TRANSLATE_NOOP("DBG", "Handling command line..."));
     dprintf("  %s\n", StringUtils::Utf16ToUtf8(GetCommandLineW()).c_str());
@@ -837,4 +838,56 @@ extern "C" DLL_EXPORT bool _dbg_dbgcmddirectexec(const char* cmd)
 bool dbgisstopped()
 {
     return bIsStopped;
+}
+
+#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS    0x00001000
+
+typedef BOOL(WINAPI* pfnSetDefaultDllDirectories)(DWORD DirectoryFlags);
+typedef BOOL(WINAPI* pfnSetDllDirectoryW)(LPCWSTR lpPathName);
+typedef BOOL(WINAPI* pfnAddDllDirectory)(LPCWSTR lpPathName);
+
+static pfnSetDefaultDllDirectories pSetDefaultDllDirectories;
+static pfnSetDllDirectoryW pSetDllDirectoryW;
+static pfnAddDllDirectory pAddDllDirectory;
+
+void ResetDllSearch()
+{
+    HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+    pSetDefaultDllDirectories = (pfnSetDefaultDllDirectories)GetProcAddress(hKernel32, "SetDefaultDllDirectories");
+    pSetDllDirectoryW = (pfnSetDllDirectoryW)GetProcAddress(hKernel32, "SetDllDirectoryW");
+    pAddDllDirectory = (pfnAddDllDirectory)GetProcAddress(hKernel32, "AddDllDirectory");
+
+    if (pSetDefaultDllDirectories && pSetDllDirectoryW && pAddDllDirectory)
+    {
+        pSetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+        pSetDllDirectoryW(NULL);
+
+        const wchar_t PATH_ENV[] = L"PATH";
+        DWORD pelen = GetEnvironmentVariableW(PATH_ENV, NULL, 0);
+        if (pelen > 0)
+        {
+            wchar_t* pestr = new wchar_t[pelen];
+            if (pestr)
+            {
+                GetEnvironmentVariableW(PATH_ENV, pestr, pelen);
+
+                std::vector<std::wstring> pitemsrev;
+                const wchar_t* pdelim = L";";
+                wchar_t* pnext = NULL;
+                wchar_t* pitem = wcstok_s(pestr, pdelim, &pnext);
+                while (pitem != NULL)
+                {
+                    pitemsrev.insert(pitemsrev.begin(), pitem);
+                    pitem = wcstok_s(NULL, pdelim, &pnext);
+                }
+
+                for (const auto & p : pitemsrev)
+                {
+                    pAddDllDirectory(p.c_str());
+                }
+
+                delete[] pestr;
+            }
+        }
+    }
 }

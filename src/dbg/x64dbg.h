@@ -17,3 +17,4 @@ DLL_EXPORT void _dbg_dbgexitsignal();
 #endif
 
 bool dbgisstopped();
+void ResetDllSearch();
