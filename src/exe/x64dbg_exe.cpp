@@ -38,6 +38,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         MessageBoxW(0, errormsg, LoadResString(IDS_BRIDGEINITERR), MB_ICONERROR | MB_SYSTEMMODAL);
         return 1;
     }
+
+    ResetDllSearch();
+
     errormsg = BridgeStart();
     if(errormsg)
     {
