@@ -763,7 +763,7 @@ extern "C" DLL_EXPORT const char* _dbg_dbginit()
     dputs(QT_TRANSLATE_NOOP("DBG", "Initialization successful!"));
     bIsStopped = false;
     dputs(QT_TRANSLATE_NOOP("DBG", "Loading plugins..."));
-    ResetDllSearch();
+    ResetDllSearch(plugindir);
     pluginloadall(plugindir);
     dputs(QT_TRANSLATE_NOOP("DBG", "Handling command line..."));
     dprintf("  %s\n", StringUtils::Utf16ToUtf8(GetCommandLineW()).c_str());
@@ -850,7 +850,7 @@ static pfnSetDefaultDllDirectories pSetDefaultDllDirectories;
 static pfnSetDllDirectoryW pSetDllDirectoryW;
 static pfnAddDllDirectory pAddDllDirectory;
 
-void ResetDllSearch()
+void ResetDllSearch(const char* plugindir)
 {
     HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
     pSetDefaultDllDirectories = (pfnSetDefaultDllDirectories)GetProcAddress(hKernel32, "SetDefaultDllDirectories");
@@ -860,7 +860,7 @@ void ResetDllSearch()
     if (pSetDefaultDllDirectories && pSetDllDirectoryW && pAddDllDirectory)
     {
         pSetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-        pSetDllDirectoryW(NULL);
+        pSetDllDirectoryW(StringUtils::Utf8ToUtf16(plugindir).c_str());
 
         const wchar_t PATH_ENV[] = L"PATH";
         DWORD pelen = GetEnvironmentVariableW(PATH_ENV, NULL, 0);
