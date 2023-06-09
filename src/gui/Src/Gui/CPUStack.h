@@ -54,10 +54,12 @@ public slots:
     void dbgStateChangedSlot(DBGSTATE state);
     void disasmSelectionChanged(dsint parVA);
     void updateSlot();
+    void copyPtrColumnSlot();
+    void copyCommentsColumnSlot();
 
 private:
-    duint mCsp;
-    bool bStackFrozen;
+    duint mCsp = 0;
+    bool bStackFrozen = false;
 
     QAction* mFreezeStack;
     QAction* mFollowStack;
